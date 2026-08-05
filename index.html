@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#9d1414">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Registro Interventi VVF</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="mark">VVF</div>
+    <div>
+      <h1>Registro Interventi</h1>
+      <p>Scheda operativa personale · v3.0</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="homeView">
+    <div class="version-badge">VERSIONE 3.0 ANDROID VERIFICATA</div>
+    <div class="hero-card">
+      <div>
+        <span class="eyebrow">ARCHIVIO PERSONALE</span>
+        <h2>Interventi salvati</h2>
+        <p>I dati restano sul dispositivo. Usa il backup per conservarli su Drive.</p>
+      </div>
+      <button id="newBtn" class="fab-main">＋ Nuovo</button>
+    </div>
+
+    <div class="quick-actions">
+      <button id="exportBtn">⇧ Backup</button>
+      <label class="file-btn">⇩ Ripristina<input id="importInput" type="file" accept=".json,application/json"></label>
+      <button id="installBtn" class="hidden">⬇ Installa</button>
+    </div>
+
+    <div class="search-wrap">
+      <span>⌕</span>
+      <input id="searchInput" placeholder="Cerca data, comune, indirizzo o tipologia">
+    </div>
+
+    <div class="stats">
+      <div><strong id="countAll">0</strong><span>Totali</span></div>
+      <div><strong id="countMonth">0</strong><span>Questo mese</span></div>
+      <div><strong id="countDone">0</strong><span>Schede fatte</span></div>
+    </div>
+
+    <div id="emptyState" class="empty">
+      <div class="empty-icon">🚒</div>
+      <h3>Nessun intervento salvato</h3>
+      <p>Premi “Nuovo” per creare la prima scheda.</p>
+    </div>
+    <div id="records"></div>
+  </section>
+
+  <section id="formView" class="hidden">
+    <div class="form-top">
+      <button id="backBtn" class="ghost">← Registro</button>
+      <div>
+        <span class="eyebrow">SCHEDA OPERATIVA</span>
+        <h2 id="formTitle">Nuovo intervento</h2>
+      </div>
+    </div>
+
+    <form id="interventionForm">
+
+      <nav id="formTabs" class="form-tabs">
+        <button type="button" class="active" data-step="intervento">🏠 Intervento</button>
+        <button type="button" data-step="persone">👥 Persone</button>
+        <button type="button" data-step="enti">🚑 Enti</button>
+        <button type="button" data-step="relazione">📝 Relazione</button>
+      </nav>
+
+      <input type="hidden" id="recordId">
+
+      <section class="panel form-section" data-form-page="intervento">
+        <h3>Intervento</h3>
+        <label class="toggle-row">
+          <span>Scheda fatta</span>
+          <input id="effettuato" type="checkbox">
+        </label>
+        <div class="grid2">
+          <label>Data<input id="data" type="date" required></label>
+          <label>Tipologia
+            <select id="tipologia">
+              <option value="">Seleziona</option>
+              <option>Incendio</option>
+              <option>Soccorso persona</option>
+              <option>Incidente stradale</option>
+              <option>Apertura porta</option>
+              <option>Fuga gas</option>
+              <option>Dissesto statico</option>
+              <option>Recupero animale</option>
+              <option>Allagamento</option>
+              <option>Ricerca persona</option>
+              <option>Albero pericolante</option>
+              <option>Altro</option>
+            </select>
+          </label>
+        </div>
+        <label>Altra tipologia<input id="tipologiaAltro"></label>
+      </section>
+
+      <section class="panel form-section" data-form-page="intervento">
+        <h3>Luogo</h3>
+        <div class="grid2">
+          <label>Comune<input id="comune"></label>
+          <label>Indirizzo<input id="indirizzo"></label>
+        </div>
+        <div class="gps-row">
+          <button type="button" id="gpsBtn">◎ Rileva posizione</button>
+          <span id="gpsStatus">Nessuna posizione acquisita</span>
+        </div>
+        <input id="lat" type="hidden"><input id="lng" type="hidden">
+      </section>
+
+      <section class="panel form-section" data-form-page="intervento">
+        <div class="panel-head">
+          <h3>Squadre e mezzi VVF</h3>
+          <button type="button" id="addTeamBtn">＋ Aggiungi squadra</button>
+        </div>
+        <div id="teamsList"></div>
+      </section>
+
+      <section class="panel form-section" data-form-page="persone">
+        <div class="panel-head">
+          <h3>Persone coinvolte / identificate</h3>
+          <button type="button" id="addPersonBtn">＋ Persona</button>
+        </div>
+        <div id="peopleList"></div>
+      </section>
+
+      <section class="panel form-section" data-form-page="enti">
+        <div class="panel-head">
+          <h3>Enti presenti</h3>
+          <button type="button" id="addEntityBtn">＋ Ente</button>
+        </div>
+        <div id="entitiesList"></div>
+      </section>
+
+      <section class="panel form-section" data-form-page="intervento">
+        <div class="panel-head">
+          <h3>Documentazione fotografica</h3>
+          <label class="file-btn small">＋ Foto<input id="photoInput" type="file" accept="image/*" capture="environment" multiple></label>
+        </div>
+        <p class="helper">Le immagini vengono compresse e salvate insieme alla scheda.</p>
+        <div id="photoList" class="photo-grid"></div>
+      </section>
+
+      <section class="panel form-section" data-form-page="relazione">
+        <h3>Rapportino di intervento</h3>
+        <div class="voice-note">Il pulsante 🎤 usa il riconoscimento vocale del browser; se non disponibile, apre il campo per utilizzare la dettatura della tastiera.</div>
+
+        <div class="field-voice">
+          <label>INFORMAZIONI E SITUAZIONE ALL'ARRIVO SUL POSTO:
+            <textarea id="infoArrivo"></textarea>
+          </label>
+          <button type="button" data-mic="infoArrivo" aria-label="Detta informazioni all'arrivo">🎤</button>
+        </div>
+
+        <div class="field-voice">
+          <label>IN CONSIDERAZIONE DI QUANTO SOPRA SI PROVVEDEVA A:
+            <textarea id="provvedeva"></textarea>
+          </label>
+          <button type="button" data-mic="provvedeva" aria-label="Detta operazioni svolte">🎤</button>
+        </div>
+
+        <div class="field-voice">
+          <label>RISULTATI OTTENUTI:
+            <textarea id="risultati"></textarea>
+          </label>
+          <button type="button" data-mic="risultati" aria-label="Detta risultati">🎤</button>
+        </div>
+
+        <div class="field-voice">
+          <label>DANNI A PERSONE, BENI, RISORSE AMBIENTALI O NATURALI:
+            <textarea id="danniCompleti"></textarea>
+          </label>
+          <button type="button" data-mic="danniCompleti" aria-label="Detta danni">🎤</button>
+        </div>
+
+        <div class="field-voice">
+          <label>PERSONE INFORTUNATE E/O DECEDUTE:
+            <textarea id="infortunatiDeceduti"></textarea>
+          </label>
+          <button type="button" data-mic="infortunatiDeceduti" aria-label="Detta persone infortunate o decedute">🎤</button>
+        </div>
+
+        <div class="field-voice">
+          <label>PRESUMIBILE CAUSA DEL SINISTRO:
+            <textarea id="causaSinistro"></textarea>
+          </label>
+          <button type="button" data-mic="causaSinistro" aria-label="Detta causa del sinistro">🎤</button>
+        </div>
+
+        <div class="field-voice">
+          <label>PROVVEDIMENTI DI TUTELA ADOTTATI:
+            <textarea id="tutelaAdottata"></textarea>
+          </label>
+          <button type="button" data-mic="tutelaAdottata" aria-label="Detta provvedimenti di tutela">🎤</button>
+        </div>
+
+        <div class="field-voice">
+          <label>ATTIVITÀ DI POLIZIA GIUDIZIARIA:
+            <textarea id="poliziaGiudiziaria"></textarea>
+          </label>
+          <button type="button" data-mic="poliziaGiudiziaria" aria-label="Detta attività di polizia giudiziaria">🎤</button>
+        </div>
+      </section>
+
+
+      <div class="form-pager">
+        <button type="button" id="stepPrevBtn">← Indietro</button>
+        <strong id="stepCounter">1 di 4</strong>
+        <button type="button" id="stepNextBtn">Avanti →</button>
+      </div>
+
+      <div class="sticky-actions">
+        <button class="primary" type="submit">Salva</button>
+        <button type="button" id="chatgptBtn">Copia per ChatGPT</button>
+        <button type="button" id="sharePhotosBtn">Condividi foto intervento</button>
+        <button type="button" id="printBtn">PDF / Stampa</button>
+        <button class="danger hidden" type="button" id="deleteBtn">Elimina</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<template id="personTemplate">
+  <div class="person-card">
+    <div class="person-title">
+      <strong>Persona</strong>
+      <button type="button" class="remove-person">Rimuovi</button>
+    </div>
+    <div class="grid2">
+      <label>Cognome e nome<input data-k="nome"></label>
+      <label>Luogo di nascita<input data-k="luogoNascita"></label>
+      <label>Data di nascita<input data-k="nascita" type="date"></label>
+      <label>Documento
+        <select data-k="documento">
+          <option value="">Seleziona</option>
+          <option>Carta d'identità</option>
+          <option>Patente</option>
+          <option>Passaporto</option>
+          <option>Altro</option>
+        </select>
+      </label>
+      <label>Numero documento<input data-k="numero"></label>
+      <label>Ruolo<input data-k="ruolo" placeholder="Proprietario, testimone, soccorso..."></label>
+      <label>Via/Piazza di residenza<input data-k="residenzaVia"></label>
+      <label>Numero civico<input data-k="residenzaCivico"></label>
+      <label>Comune di residenza<input data-k="residenzaComune"></label>
+      <label>Provincia<input data-k="residenzaProvincia" maxlength="2" placeholder="MI"></label>
+    </div>
+    <div class="document-scan">
+      <h4>Documento di identità</h4>
+      <div class="doc-side">
+        <strong>Fronte</strong>
+        <label class="file-btn small">📷 Fotografa fronte
+          <input class="doc-front-input" type="file" accept="image/*" capture="environment">
+        </label>
+        <button type="button" class="remove-doc-front hidden">Rimuovi fronte</button>
+        <span class="doc-front-status">Nessuna foto fronte</span>
+        <img class="doc-front-preview hidden" alt="Anteprima fronte documento">
+      </div>
+      <div class="doc-side">
+        <strong>Retro</strong>
+        <label class="file-btn small">📷 Fotografa retro
+          <input class="doc-back-input" type="file" accept="image/*" capture="environment">
+        </label>
+        <button type="button" class="remove-doc-back hidden">Rimuovi retro</button>
+        <span class="doc-back-status">Nessuna foto retro</span>
+        <img class="doc-back-preview hidden" alt="Anteprima retro documento">
+      </div>
+      <p class="helper">Le foto del documento restano separate dalle foto dell'intervento e vengono incluse nel backup.</p>
+    </div>
+  </div>
+</template>
+
+
+
+<template id="teamTemplate">
+  <div class="team-card">
+    <div class="person-title">
+      <strong>Squadra VVF</strong>
+      <button type="button" class="remove-team">Rimuovi</button>
+    </div>
+    <div class="grid2">
+      <label>Sede / Distaccamento
+        <input data-t="sede" placeholder="Es. Desio, Monza, Sesto San Giovanni">
+      </label>
+      <label>Mezzo
+        <select data-t="mezzo">
+          <option value="">Seleziona</option>
+          <option>APS</option>
+          <option>ABP</option>
+          <option>AS</option>
+          <option>AB</option>
+          <option>CA</option>
+          <option>CR</option>
+          <option>AF</option>
+          <option>UCL</option>
+          <option>Polisoccorso</option>
+          <option>Carro aria</option>
+          <option>Carro soccorso</option>
+          <option>Furgone</option>
+          <option>Pick-up</option>
+          <option>Altro</option>
+        </select>
+      </label>
+      <label>Targa VF
+        <input data-t="targa" placeholder="Es. VF 12345">
+      </label>
+      <label>Note
+        <input data-t="note">
+      </label>
+    </div>
+  </div>
+</template>
+
+<template id="entityTemplate">
+  <div class="entity-card">
+    <div class="person-title">
+      <strong>Ente</strong>
+      <button type="button" class="remove-entity">Rimuovi</button>
+    </div>
+    <div class="grid2">
+      <label>Tipo ente
+        <select data-e="tipo">
+          <option value="">Seleziona</option>
+          <option>118</option>
+          <option>Carabinieri</option>
+          <option>Polizia di Stato</option>
+          <option>Polizia Locale</option>
+          <option>Guardia di Finanza</option>
+          <option>Protezione Civile</option>
+          <option>AREU</option>
+          <option>ATS</option>
+          <option>Comune</option>
+          <option>Enel</option>
+          <option>Italgas</option>
+          <option>ANAS</option>
+          <option>Società Autostrade</option>
+          <option>Croce Rossa</option>
+          <option>Croce Bianca</option>
+          <option>Altro</option>
+        </select>
+      </label>
+      <label>Ente personalizzato<input data-e="tipoAltro" placeholder="Compila se non presente nella lista"></label>
+      <label>Denominazione / sigla mezzo<input data-e="denominazione" placeholder="Es. SOS 28, CRI Bresso 076"></label>
+      <label>Capo pattuglia / medico / responsabile<input data-e="responsabile"></label>
+      <label class="full-width">Note<input data-e="note"></label>
+    </div>
+  </div>
+</template>
+
+<template id="photoTemplate">
+  <div class="photo-card">
+    <img alt="Foto intervento">
+    <input data-photo-caption placeholder="Descrizione foto">
+    <button type="button" class="remove-photo">Rimuovi</button>
+  </div>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>

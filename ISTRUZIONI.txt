@@ -1,0 +1,71 @@
+REGISTRO INTERVENTI VVF — VERSIONE 2.0
+
+FUNZIONI
+- Archivio interventi ordinato per data
+- Ricerca
+- Persone identificate e documenti
+- Enti e capi pattuglia
+- Documentazione fotografica con descrizione
+- GPS
+- Dettatura vocale, se supportata dal browser
+- Stampa / salvataggio PDF
+- Backup e ripristino tramite file JSON
+- Funzionamento offline dopo la prima apertura
+
+PUBBLICAZIONE SU NETLIFY DROP
+1. Decomprimi questo ZIP.
+2. Carica la cartella estratta su Netlify Drop.
+3. Apri il link generato.
+4. Su iPhone: Safari > Condividi > Aggiungi alla schermata Home.
+5. Su Android: Chrome > menu > Installa app.
+
+RISERVATEZZA
+I dati rimangono nel dispositivo. Il sito contiene solo il programma.
+Per passare l'archivio tra tablet e iPhone:
+- Backup
+- salva il file su Google Drive
+- Ripristina sull'altro dispositivo
+
+NOTA
+La sincronizzazione automatica con Google Drive non è inclusa in questa versione:
+richiede autenticazione Google e un servizio dedicato.
+
+
+VERSIONE 2.1 CORRETTA
+- Dicitura “Scheda fatta”.
+- Foto documento nella scheda persona.
+- Inserimento manuale dei dati del documento.
+- Pulsante ChatGPT: copia i dati strutturati e apre ChatGPT.
+- Questa versione evita funzioni OCR sperimentali per mantenere maggiore stabilità.
+
+
+VERSIONE 2.2 COMPLETA
+- Compatibile con le schede delle versioni precedenti.
+- Persone: rimosso telefono, aggiunta residenza.
+- Enti presenti dinamici e ripetibili, con voce Altro.
+- Campi del rapportino sostituiti con le otto diciture richieste.
+- Microfono migliorato con fallback alla dettatura della tastiera.
+- ChatGPT copia soltanto il testo e non apre siti.
+- Condivisione separata delle sole foto intervento.
+- Le foto documento non vengono incluse nella condivisione.
+
+
+PACCHETTO 2.2 TESTATA
+- La schermata iniziale mostra chiaramente “VERSIONE 2.2 TESTATA”.
+- Se questa scritta non appare dopo l’aggiornamento, GitHub o il browser stanno
+  ancora servendo una versione precedente.
+
+
+VERSIONE 2.3 — BASE REALE
+- Creata direttamente dallo ZIP 2.2 funzionante fornito dall’utente.
+- Aggiunta gestione dinamica squadre/mezzi.
+- Nessuna modifica alla logica di Backup, Ripristina, Salva o Copia per ChatGPT.
+- Le vecchie schede restano leggibili.
+
+
+VERSIONE 3.0 ANDROID VERIFICATA
+- Ricostruita dalla 2.3 FIX funzionante.
+- Corretta definitivamente la gestione Enti che bloccava Nuovo.
+- Pagine Intervento, Persone, Enti e Relazione.
+- Luogo di nascita e foto documento fronte/retro.
+- Compatibile con backup precedenti.
