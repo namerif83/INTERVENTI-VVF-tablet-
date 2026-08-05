@@ -1,6 +1,6 @@
 {
-  "name": "Registro Interventi VVF Android",
-  "short_name": "VVF Android",
+  "name": "Registro Interventi VVF Android OCR",
+  "short_name": "VVF OCR",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#eef1f4",

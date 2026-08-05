@@ -69,3 +69,13 @@ VERSIONE 3.0 ANDROID VERIFICATA
 - Pagine Intervento, Persone, Enti e Relazione.
 - Luogo di nascita e foto documento fronte/retro.
 - Compatibile con backup precedenti.
+
+
+VERSIONE 3.1 ANDROID OCR
+- OCR dei documenti con Tesseract.js in italiano.
+- Fronte/retro da fotocamera oppure galleria.
+- Foto intervento da fotocamera oppure galleria.
+- Visualizzatore a schermo intero con zoom, trascinamento e rotazione.
+- I dati OCR sono proposte: devono essere verificati manualmente.
+- L'OCR richiede Internet al primo utilizzo per caricare il motore e la lingua italiana.
+- Nuovo, Salva, Backup, Ripristina e ChatGPT restano invariati.

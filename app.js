@@ -33,6 +33,12 @@ function addPerson(p={}){
   const removeBack=card.querySelector('.remove-doc-back');
   const frontInput=card.querySelector('.doc-front-input');
   const backInput=card.querySelector('.doc-back-input');
+  const frontGalleryInput=card.querySelector('.doc-front-gallery-input');
+  const backGalleryInput=card.querySelector('.doc-back-gallery-input');
+  const ocrButton=card.querySelector('.ocr-document-btn');
+  const ocrProgress=card.querySelector('.ocr-progress');
+  const ocrDetails=card.querySelector('.ocr-details');
+  const ocrRawText=card.querySelector('.ocr-raw-text');
 
   function refresh(side){
     const isFront=side==='front';
@@ -70,6 +76,17 @@ function addPerson(p={}){
     await acquire(event.target.files&&event.target.files[0],'back');
     event.target.value='';
   };
+  frontGalleryInput.onchange=async event=>{
+    await acquire(event.target.files&&event.target.files[0],'front');
+    event.target.value='';
+  };
+  backGalleryInput.onchange=async event=>{
+    await acquire(event.target.files&&event.target.files[0],'back');
+    event.target.value='';
+  };
+  frontPreview.onclick=()=>openImageViewer(card.dataset.docFront);
+  backPreview.onclick=()=>openImageViewer(card.dataset.docBack);
+  ocrButton.onclick=()=>runDocumentOCR(card);
 
   removeFront.onclick=()=>{
     card.dataset.docFront='';
@@ -190,8 +207,23 @@ function legacyTeams(record){
 
 function compressImage(file,max=1600,q=.78){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=()=>rej(fr.error);fr.onload=()=>{const im=new Image();im.onerror=()=>rej();im.onload=()=>{let w=im.width,h=im.height,s=Math.min(1,max/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);res(c.toDataURL('image/jpeg',q))};im.src=fr.result};fr.readAsDataURL(file)})}
 function renderPhotos(){
-  const box=$('photoList');box.innerHTML='';
-  currentPhotos.forEach((p,i)=>{const n=$('photoTemplate').content.cloneNode(true),c=n.querySelector('.photo-card');c.querySelector('img').src=p.data;const cap=c.querySelector('[data-photo-caption]');cap.value=p.caption||'';cap.oninput=()=>currentPhotos[i].caption=cap.value;c.querySelector('.remove-photo').onclick=()=>{currentPhotos.splice(i,1);renderPhotos()};box.appendChild(n)})
+  const box=$('photoList');
+  box.innerHTML='';
+  currentPhotos.forEach((photo,index)=>{
+    const node=$('photoTemplate').content.cloneNode(true);
+    const card=node.querySelector('.photo-card');
+    const image=card.querySelector('img');
+    image.src=photo.data;
+    image.onclick=()=>openImageViewer(photo.data);
+    const caption=card.querySelector('[data-photo-caption]');
+    caption.value=photo.caption||'';
+    caption.oninput=()=>currentPhotos[index].caption=caption.value;
+    card.querySelector('.remove-photo').onclick=()=>{
+      currentPhotos.splice(index,1);
+      renderPhotos();
+    };
+    box.appendChild(node);
+  });
 }
 
 function resetForm(){
@@ -255,6 +287,7 @@ async function render(q=''){
 $('newBtn').onclick=()=>{resetForm();show('form')};$('backBtn').onclick=()=>{show('home');render($('searchInput').value)};
 $('addPersonBtn').onclick=()=>addPerson();$('addEntityBtn').onclick=()=>addEntity();$('addTeamBtn').onclick=()=>addTeam();$('searchInput').oninput=e=>render(e.target.value);
 $('photoInput').onchange=async e=>{for(const f of [...e.target.files]){try{currentPhotos.push({data:await compressImage(f),caption:'',name:f.name,createdAt:Date.now()})}catch{toast('Foto non aggiunta')}}renderPhotos();e.target.value=''}
+$('photoGalleryInput').onchange=async e=>{for(const f of [...e.target.files]){try{currentPhotos.push({data:await compressImage(f),caption:'',name:f.name,createdAt:Date.now()})}catch{toast('Foto non aggiunta')}}renderPhotos();e.target.value=''}
 
 $('gpsBtn').onclick=()=>{
   if(!navigator.geolocation)return toast('GPS non disponibile');
@@ -492,4 +525,240 @@ function tabletInit(){
   tabletShowStep('intervento',false);
 }
 
-(async()=>{tabletInit();renderMezzi();await openDB();await render();setPeople([]);setEntities([]);setTeams([]);if('serviceWorker'in navigator)navigator.serviceWorker.register('service-worker.js')})();
+
+function normalizeOCRText(text=''){
+  return text
+    .replace(/\r/g,'\n')
+    .replace(/[|]/g,'I')
+    .replace(/[ \t]+/g,' ')
+    .replace(/\n{2,}/g,'\n')
+    .trim();
+}
+
+function ocrLines(text=''){
+  return normalizeOCRText(text)
+    .split('\n')
+    .map(line=>line.trim())
+    .filter(Boolean);
+}
+
+function isLikelyLabel(line=''){
+  return /^(REPUBBLICA|ITALIANA|MINISTERO|CARTA|IDENTIT|IDENTITY|COGNOME|SURNAME|NOME|NAME|LUOGO|PLACE|DATA|DATE|SESSO|SEX|ALTEZZA|HEIGHT|CITTADINANZA|NATIONALITY|SCADENZA|EXPIRY|EMISSIONE|ISSUING|RESIDENZA|ADDRESS|COMUNE|DOCUMENT|DOC\.?|NUMERO|FIRMA|SIGNATURE|CODICE|FISCALE|AUTORIT)/i.test(line);
+}
+
+function valueAfterLabel(lines,patterns){
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    if(patterns.some(pattern=>pattern.test(line))){
+      const inline=line.replace(/^.*?(?:COGNOME|SURNAME|NOME|GIVEN NAMES?|LUOGO(?: E DATA)? DI NASCITA|PLACE OF BIRTH|DATA DI NASCITA|DATE OF BIRTH|RESIDENZA|ADDRESS|NUMERO DOCUMENTO|DOCUMENT NO\.?|DOCUMENT NUMBER)\s*[:\-]?\s*/i,'').trim();
+      if(inline && inline!==line && !isLikelyLabel(inline))return inline;
+      for(let j=i+1;j<Math.min(lines.length,i+4);j++){
+        if(!isLikelyLabel(lines[j]))return lines[j];
+      }
+    }
+  }
+  return '';
+}
+
+function toISODate(value=''){
+  const match=value.match(/\b([0-3]?\d)[.\/\-]([01]?\d)[.\/\-]((?:19|20)?\d{2})\b/);
+  if(!match)return '';
+  let year=match[3];
+  if(year.length===2)year=(Number(year)>30?'19':'20')+year;
+  return `${year.padStart(4,'0')}-${match[2].padStart(2,'0')}-${match[1].padStart(2,'0')}`;
+}
+
+function parseItalianIdentityDocument(text=''){
+  const lines=ocrLines(text);
+  let surname=valueAfterLabel(lines,[/\bCOGNOME\b/i,/\bSURNAME\b/i]);
+  let given=valueAfterLabel(lines,[/^NOME\b/i,/\bGIVEN NAMES?\b/i]);
+  const birth=valueAfterLabel(lines,[/LUOGO.*NASCITA/i,/PLACE OF BIRTH/i]);
+  let birthPlace=birth.replace(/\b[0-3]?\d[.\/\-][01]?\d[.\/\-](?:19|20)?\d{2}\b.*$/,'').trim();
+  let birthDate=toISODate(valueAfterLabel(lines,[/DATA.*NASCITA/i,/DATE OF BIRTH/i])||birth);
+  const residence=valueAfterLabel(lines,[/\bRESIDENZA\b/i,/\bADDRESS\b/i]);
+  let documentNumber=valueAfterLabel(lines,[/NUMERO.*DOCUMENT/i,/DOCUMENT NO/i,/DOCUMENT NUMBER/i]);
+
+  if(!documentNumber){
+    const joined=lines.join(' ');
+    const cie=joined.match(/\bC[A-Z0-9]{7,9}\b/);
+    if(cie)documentNumber=cie[0];
+  }
+
+  if((!surname||!given)){
+    const mrz=lines.filter(line=>/[A-Z]{2,}<<[A-Z<]{2,}/.test(line)).pop();
+    if(mrz){
+      const parts=mrz.replace(/[^A-Z<]/g,'').split('<<');
+      if(!surname)surname=(parts[0]||'').replace(/</g,' ').trim();
+      if(!given)given=(parts[1]||'').replace(/</g,' ').trim();
+    }
+  }
+
+  return {
+    nome:[surname,given].filter(Boolean).join(' ').replace(/\s+/g,' ').trim(),
+    luogoNascita:birthPlace,
+    nascita:birthDate,
+    numero:documentNumber.replace(/\s+/g,'').trim(),
+    residenzaVia:residence
+  };
+}
+
+async function runDocumentOCR(card){
+  const front=card.dataset.docFront||'';
+  const back=card.dataset.docBack||'';
+  const button=card.querySelector('.ocr-document-btn');
+  const progress=card.querySelector('.ocr-progress');
+  const details=card.querySelector('.ocr-details');
+  const raw=card.querySelector('.ocr-raw-text');
+
+  if(!front&&!back){
+    toast('Aggiungi prima il fronte o il retro del documento');
+    return;
+  }
+  if(!window.Tesseract){
+    toast('OCR non disponibile: collega il tablet a Internet e riapri l’app');
+    return;
+  }
+
+  button.disabled=true;
+  progress.classList.remove('hidden');
+  progress.textContent='Caricamento OCR…';
+  let worker;
+
+  try{
+    worker=await Tesseract.createWorker('ita',1,{
+      logger:message=>{
+        if(message.status==='recognizing text'){
+          progress.textContent=`Lettura documento ${Math.round((message.progress||0)*100)}%`;
+        }else{
+          progress.textContent=message.status||'Preparazione OCR…';
+        }
+      }
+    });
+
+    const texts=[];
+    if(front){
+      progress.textContent='Lettura fronte…';
+      const result=await worker.recognize(front);
+      texts.push(result.data.text||'');
+    }
+    if(back){
+      progress.textContent='Lettura retro…';
+      const result=await worker.recognize(back);
+      texts.push(result.data.text||'');
+    }
+
+    const complete=normalizeOCRText(texts.join('\n'));
+    const parsed=parseItalianIdentityDocument(complete);
+    const fields=['nome','luogoNascita','nascita','numero','residenzaVia'];
+
+    fields.forEach(key=>{
+      const input=card.querySelector(`[data-k="${key}"]`);
+      if(input && parsed[key] && !input.value.trim())input.value=parsed[key];
+    });
+
+    const docType=card.querySelector('[data-k="documento"]');
+    if(docType && !docType.value)docType.value="Carta d'identità";
+
+    raw.textContent=complete||'Nessun testo riconosciuto';
+    details.classList.remove('hidden');
+    details.open=true;
+    toast('OCR completato: controlla e correggi i dati');
+  }catch(error){
+    console.error(error);
+    toast('OCR non riuscito. Controlla la connessione e la qualità della foto');
+  }finally{
+    if(worker)await worker.terminate().catch(()=>{});
+    button.disabled=false;
+    progress.classList.add('hidden');
+  }
+}
+
+let viewerScale=1;
+let viewerRotation=0;
+let viewerX=0;
+let viewerY=0;
+let viewerDragging=false;
+let viewerStartX=0;
+let viewerStartY=0;
+let viewerPinchDistance=0;
+
+function applyViewerTransform(){
+  $('viewerImage').style.transform=`translate(${viewerX}px,${viewerY}px) scale(${viewerScale}) rotate(${viewerRotation}deg)`;
+}
+
+function resetImageViewer(){
+  viewerScale=1;
+  viewerRotation=0;
+  viewerX=0;
+  viewerY=0;
+  applyViewerTransform();
+}
+
+function openImageViewer(source){
+  if(!source)return;
+  $('viewerImage').src=source;
+  $('imageViewer').classList.remove('hidden');
+  $('imageViewer').setAttribute('aria-hidden','false');
+  document.body.classList.add('viewer-open');
+  resetImageViewer();
+}
+
+function closeImageViewer(){
+  $('imageViewer').classList.add('hidden');
+  $('imageViewer').setAttribute('aria-hidden','true');
+  $('viewerImage').removeAttribute('src');
+  document.body.classList.remove('viewer-open');
+}
+
+function distanceBetweenTouches(touches){
+  const dx=touches[0].clientX-touches[1].clientX;
+  const dy=touches[0].clientY-touches[1].clientY;
+  return Math.hypot(dx,dy);
+}
+
+function initImageViewer(){
+  $('viewerClose').onclick=closeImageViewer;
+  $('viewerZoomIn').onclick=()=>{viewerScale=Math.min(6,viewerScale+.35);applyViewerTransform()};
+  $('viewerZoomOut').onclick=()=>{viewerScale=Math.max(.5,viewerScale-.35);applyViewerTransform()};
+  $('viewerRotate').onclick=()=>{viewerRotation=(viewerRotation+90)%360;applyViewerTransform()};
+  $('viewerReset').onclick=resetImageViewer;
+  $('imageViewer').onclick=event=>{if(event.target===$('imageViewer'))closeImageViewer()};
+
+  const stage=$('viewerStage');
+  stage.onwheel=event=>{
+    event.preventDefault();
+    viewerScale=Math.max(.5,Math.min(6,viewerScale+(event.deltaY<0?.25:-.25)));
+    applyViewerTransform();
+  };
+  stage.onpointerdown=event=>{
+    viewerDragging=true;
+    viewerStartX=event.clientX-viewerX;
+    viewerStartY=event.clientY-viewerY;
+    stage.setPointerCapture?.(event.pointerId);
+  };
+  stage.onpointermove=event=>{
+    if(!viewerDragging)return;
+    viewerX=event.clientX-viewerStartX;
+    viewerY=event.clientY-viewerStartY;
+    applyViewerTransform();
+  };
+  stage.onpointerup=()=>viewerDragging=false;
+  stage.onpointercancel=()=>viewerDragging=false;
+  stage.ontouchstart=event=>{
+    if(event.touches.length===2)viewerPinchDistance=distanceBetweenTouches(event.touches);
+  };
+  stage.ontouchmove=event=>{
+    if(event.touches.length===2){
+      event.preventDefault();
+      const distance=distanceBetweenTouches(event.touches);
+      if(viewerPinchDistance){
+        viewerScale=Math.max(.5,Math.min(6,viewerScale*(distance/viewerPinchDistance)));
+        applyViewerTransform();
+      }
+      viewerPinchDistance=distance;
+    }
+  };
+  stage.ontouchend=()=>viewerPinchDistance=0;
+}
+
+(async()=>{initImageViewer();tabletInit();renderMezzi();await openDB();await render();setPeople([]);setEntities([]);setTeams([]);if('serviceWorker'in navigator)navigator.serviceWorker.register('service-worker.js')})();

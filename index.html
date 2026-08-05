@@ -18,14 +18,14 @@
     <div class="mark">VVF</div>
     <div>
       <h1>Registro Interventi</h1>
-      <p>Scheda operativa personale · v3.0</p>
+      <p>Scheda operativa personale · v3.1</p>
     </div>
   </div>
 </header>
 
 <main>
   <section id="homeView">
-    <div class="version-badge">VERSIONE 3.0 ANDROID VERIFICATA</div>
+    <div class="version-badge">VERSIONE 3.1 ANDROID OCR</div>
     <div class="hero-card">
       <div>
         <span class="eyebrow">ARCHIVIO PERSONALE</span>
@@ -148,7 +148,8 @@
       <section class="panel form-section" data-form-page="intervento">
         <div class="panel-head">
           <h3>Documentazione fotografica</h3>
-          <label class="file-btn small">＋ Foto<input id="photoInput" type="file" accept="image/*" capture="environment" multiple></label>
+          <label class="file-btn small">📷 Scatta foto<input id="photoInput" type="file" accept="image/*" capture="environment" multiple></label>
+          <label class="file-btn small">🖼️ Galleria<input id="photoGalleryInput" type="file" accept="image/*" multiple></label>
         </div>
         <p class="helper">Le immagini vengono compresse e salvate insieme alla scheda.</p>
         <div id="photoList" class="photo-grid"></div>
@@ -233,6 +234,20 @@
   </section>
 </main>
 
+<div id="imageViewer" class="image-viewer hidden" aria-hidden="true">
+  <div class="viewer-toolbar">
+    <button type="button" id="viewerZoomOut">−</button>
+    <button type="button" id="viewerZoomIn">＋</button>
+    <button type="button" id="viewerRotate">↻</button>
+    <button type="button" id="viewerReset">Ripristina</button>
+    <button type="button" id="viewerClose">✕</button>
+  </div>
+  <div id="viewerStage" class="viewer-stage">
+    <img id="viewerImage" alt="Immagine ingrandita">
+  </div>
+</div>
+
+
 <template id="personTemplate">
   <div class="person-card">
     <div class="person-title">
@@ -266,6 +281,9 @@
         <label class="file-btn small">📷 Fotografa fronte
           <input class="doc-front-input" type="file" accept="image/*" capture="environment">
         </label>
+        <label class="file-btn small">🖼️ Fronte da galleria
+          <input class="doc-front-gallery-input" type="file" accept="image/*">
+        </label>
         <button type="button" class="remove-doc-front hidden">Rimuovi fronte</button>
         <span class="doc-front-status">Nessuna foto fronte</span>
         <img class="doc-front-preview hidden" alt="Anteprima fronte documento">
@@ -275,11 +293,17 @@
         <label class="file-btn small">📷 Fotografa retro
           <input class="doc-back-input" type="file" accept="image/*" capture="environment">
         </label>
+        <label class="file-btn small">🖼️ Retro da galleria
+          <input class="doc-back-gallery-input" type="file" accept="image/*">
+        </label>
         <button type="button" class="remove-doc-back hidden">Rimuovi retro</button>
         <span class="doc-back-status">Nessuna foto retro</span>
         <img class="doc-back-preview hidden" alt="Anteprima retro documento">
       </div>
-      <p class="helper">Le foto del documento restano separate dalle foto dell'intervento e vengono incluse nel backup.</p>
+      <button type="button" class="ocr-document-btn">🤖 Leggi documento</button>
+      <div class="ocr-progress hidden">Preparazione OCR…</div>
+      <details class="ocr-details hidden"><summary>Testo riconosciuto</summary><pre class="ocr-raw-text"></pre></details>
+      <p class="helper">Controlla sempre i dati riconosciuti. L’OCR richiede Internet al primo utilizzo; l’app restante continua a funzionare offline.</p>
     </div>
   </div>
 </template>
@@ -369,6 +393,7 @@
   </div>
 </template>
 
+<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 <script src="app.js"></script>
 </body>
 </html>
