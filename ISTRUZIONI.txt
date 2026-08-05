@@ -90,3 +90,11 @@ VERSIONE 3.2 OCR FIX + BACKUP UNICO
 - Il normale Backup JSON rimane disponibile come copia esterna di sicurezza.
 - Il backup unico interno resta sul tablet e può essere cancellato eliminando i dati
   del sito/app: conservare periodicamente anche una copia JSON su Drive.
+
+
+VERSIONE 3.3 OCR CORRETTO
+- Corretto langPath con la barra finale obbligatoria.
+- Corretto corePath come directory completa.
+- Worker OCR allineato alla configurazione ufficiale Tesseract.js v5.
+- In caso di errore, il motivo tecnico appare dentro “Testo riconosciuto”.
+- Backup unico interno e backup JSON esterno restano invariati.

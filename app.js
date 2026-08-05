@@ -626,9 +626,9 @@ async function runDocumentOCR(card){
 
   try{
     worker=await Tesseract.createWorker('ita',1,{
-      workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/worker.min.js',
-      corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0',
-      langPath:'https://tessdata.projectnaptha.com/4.0.0_fast',
+      workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@v5.0.0/dist/worker.min.js',
+      corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.0.0/',
+      langPath:'https://tessdata.projectnaptha.com/4.0.0_fast/',
       workerBlobURL:true,
       gzip:true,
       logger:message=>{
@@ -680,7 +680,11 @@ async function runDocumentOCR(card){
     toast('OCR completato: controlla e correggi i dati');
   }catch(error){
     console.error(error);
-    toast('OCR non riuscito: controlla Internet, evita riflessi e fotografa il documento diritto');
+    const technicalMessage=(error&&error.message)?error.message:String(error||'Errore sconosciuto');
+    raw.textContent='ERRORE OCR:\n'+technicalMessage;
+    details.classList.remove('hidden');
+    details.open=true;
+    toast('OCR non riuscito: apri “Testo riconosciuto” per vedere il motivo');
   }finally{
     if(worker)await worker.terminate().catch(()=>{});
     button.disabled=false;
