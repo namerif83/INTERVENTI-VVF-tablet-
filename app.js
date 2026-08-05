@@ -615,7 +615,7 @@ async function runDocumentOCR(card){
     return;
   }
   if(!window.Tesseract){
-    toast('OCR non disponibile: collega il tablet a Internet e riapri l’app');
+    toast('Motore OCR non caricato. Controlla Internet, aggiorna la pagina e riprova');
     return;
   }
 
@@ -626,12 +626,27 @@ async function runDocumentOCR(card){
 
   try{
     worker=await Tesseract.createWorker('ita',1,{
+      workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/worker.min.js',
+      corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0',
+      langPath:'https://tessdata.projectnaptha.com/4.0.0_fast',
+      workerBlobURL:true,
+      gzip:true,
       logger:message=>{
-        if(message.status==='recognizing text'){
-          progress.textContent=`Lettura documento ${Math.round((message.progress||0)*100)}%`;
-        }else{
-          progress.textContent=message.status||'Preparazione OCR…';
-        }
+        const labels={
+          'loading tesseract core':'Caricamento motore OCR',
+          'initializing tesseract':'Inizializzazione OCR',
+          'loading language traineddata':'Caricamento lingua italiana',
+          'initializing api':'Preparazione lettura',
+          'recognizing text':'Lettura del documento'
+        };
+        const label=labels[message.status]||message.status||'Preparazione OCR';
+        const percentage=typeof message.progress==='number'
+          ? ` ${Math.round(message.progress*100)}%`
+          : '';
+        progress.textContent=label+percentage;
+      },
+      errorHandler:error=>{
+        console.error('Errore worker OCR:',error);
       }
     });
 
@@ -665,7 +680,7 @@ async function runDocumentOCR(card){
     toast('OCR completato: controlla e correggi i dati');
   }catch(error){
     console.error(error);
-    toast('OCR non riuscito. Controlla la connessione e la qualità della foto');
+    toast('OCR non riuscito: controlla Internet, evita riflessi e fotografa il documento diritto');
   }finally{
     if(worker)await worker.terminate().catch(()=>{});
     button.disabled=false;
@@ -761,4 +776,82 @@ function initImageViewer(){
   stage.ontouchend=()=>viewerPinchDistance=0;
 }
 
-(async()=>{initImageViewer();tabletInit();renderMezzi();await openDB();await render();setPeople([]);setEntities([]);setTeams([]);if('serviceWorker'in navigator)navigator.serviceWorker.register('service-worker.js')})();
+
+const SINGLE_BACKUP_CACHE='vvf-backup-unico-interno';
+const SINGLE_BACKUP_KEY=new URL('./__backup_unico_vvf__.json',location.href).href;
+const SINGLE_BACKUP_DATE_KEY='vvfSingleBackupDate';
+
+async function updateSingleBackupStatus(){
+  const status=$('singleBackupStatus');
+  if(!status)return;
+  const savedAt=localStorage.getItem(SINGLE_BACKUP_DATE_KEY);
+  if(!savedAt){
+    status.textContent='Non ancora creato';
+    return;
+  }
+  const date=new Date(savedAt);
+  status.textContent=`Ultimo aggiornamento: ${date.toLocaleString('it-IT')}`;
+}
+
+async function createSingleInternalBackup(){
+  try{
+    const records=await getAll();
+    const payload={
+      version:2,
+      backupType:'single-internal',
+      exportedAt:new Date().toISOString(),
+      records
+    };
+    const cache=await caches.open(SINGLE_BACKUP_CACHE);
+    await cache.put(
+      SINGLE_BACKUP_KEY,
+      new Response(JSON.stringify(payload),{
+        headers:{'Content-Type':'application/json'}
+      })
+    );
+    localStorage.setItem(SINGLE_BACKUP_DATE_KEY,payload.exportedAt);
+    await updateSingleBackupStatus();
+    toast(`Backup unico aggiornato: ${records.length} schede`);
+  }catch(error){
+    console.error(error);
+    toast('Impossibile aggiornare il backup unico');
+  }
+}
+
+async function restoreSingleInternalBackup(){
+  try{
+    const cache=await caches.open(SINGLE_BACKUP_CACHE);
+    const response=await cache.match(SINGLE_BACKUP_KEY);
+    if(!response){
+      toast('Nessun backup unico disponibile');
+      return;
+    }
+    const payload=await response.json();
+    const records=Array.isArray(payload)?payload:payload.records;
+    if(!Array.isArray(records)){
+      toast('Backup unico non valido');
+      return;
+    }
+    if(!confirm(`Ripristinare ${records.length} schede dal backup unico? Le schede con lo stesso ID verranno aggiornate.`)){
+      return;
+    }
+    for(const record of records)await put(record);
+    await render($('searchInput').value);
+    toast(`Ripristino completato: ${records.length} schede`);
+  }catch(error){
+    console.error(error);
+    toast('Impossibile ripristinare il backup unico');
+  }
+}
+
+async function verifyOCRResources(){
+  const button=document.querySelector('.ocr-document-btn');
+  if(!button)return;
+  if(!window.Tesseract){
+    button.title='Motore OCR non caricato: serve Internet';
+  }else{
+    button.title='Leggi automaticamente i dati del documento';
+  }
+}
+
+(async()=>{initImageViewer();tabletInit();$('singleBackupBtn').onclick=createSingleInternalBackup;$('singleRestoreBtn').onclick=restoreSingleInternalBackup;await updateSingleBackupStatus();await verifyOCRResources();renderMezzi();await openDB();await render();setPeople([]);setEntities([]);setTeams([]);if('serviceWorker'in navigator)navigator.serviceWorker.register('service-worker.js')})();

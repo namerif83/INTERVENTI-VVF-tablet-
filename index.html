@@ -18,14 +18,14 @@
     <div class="mark">VVF</div>
     <div>
       <h1>Registro Interventi</h1>
-      <p>Scheda operativa personale · v3.1</p>
+      <p>Scheda operativa personale · v3.2</p>
     </div>
   </div>
 </header>
 
 <main>
   <section id="homeView">
-    <div class="version-badge">VERSIONE 3.1 ANDROID OCR</div>
+    <div class="version-badge">VERSIONE 3.2 OCR FIX</div>
     <div class="hero-card">
       <div>
         <span class="eyebrow">ARCHIVIO PERSONALE</span>
@@ -36,6 +36,15 @@
     </div>
 
     <div class="quick-actions">
+
+      <div class="backup-single-box">
+        <div>
+          <strong>Backup unico interno</strong>
+          <small id="singleBackupStatus">Non ancora creato</small>
+        </div>
+        <button type="button" id="singleBackupBtn">Aggiorna backup unico</button>
+        <button type="button" id="singleRestoreBtn">Ripristina backup unico</button>
+      </div>
       <button id="exportBtn">⇧ Backup</button>
       <label class="file-btn">⇩ Ripristina<input id="importInput" type="file" accept=".json,application/json"></label>
       <button id="installBtn" class="hidden">⬇ Installa</button>
@@ -393,7 +402,7 @@
   </div>
 </template>
 
-<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js'></script>
 <script src="app.js"></script>
 </body>
 </html>

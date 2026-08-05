@@ -79,3 +79,14 @@ VERSIONE 3.1 ANDROID OCR
 - I dati OCR sono proposte: devono essere verificati manualmente.
 - L'OCR richiede Internet al primo utilizzo per caricare il motore e la lingua italiana.
 - Nuovo, Salva, Backup, Ripristina e ChatGPT restano invariati.
+
+
+VERSIONE 3.2 OCR FIX + BACKUP UNICO
+- OCR corretto con percorsi espliciti e versioni bloccate:
+  Tesseract.js 5.0.4, core 5.0.0 e lingua italiana fast.
+- Messaggi di avanzamento e di errore OCR più chiari.
+- Backup unico interno: ogni aggiornamento sovrascrive la copia precedente.
+- Ripristino diretto del backup unico senza cercare file nella cartella Download.
+- Il normale Backup JSON rimane disponibile come copia esterna di sicurezza.
+- Il backup unico interno resta sul tablet e può essere cancellato eliminando i dati
+  del sito/app: conservare periodicamente anche una copia JSON su Drive.

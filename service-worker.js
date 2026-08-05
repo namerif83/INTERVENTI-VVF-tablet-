@@ -1,5 +1,5 @@
 
-const CACHE='vvf-v3-1-android-ocr-20260805';
+const CACHE='vvf-v3-2-ocr-fix-backup-unico-20260805';
 const ASSETS=['./','index.html','style.css','app.js','manifest.json','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
